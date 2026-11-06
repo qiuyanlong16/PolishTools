@@ -26,6 +26,8 @@ New-Item -ItemType Directory -Path $dist | Out-Null
 
 Copy-Item $exe (Join-Path $dist "PolishTools.exe")
 Copy-Item (Join-Path $Root "README.md") $dist -ErrorAction SilentlyContinue
+Copy-Item (Join-Path $Root "README.zh-CN.md") $dist -ErrorAction SilentlyContinue
+Copy-Item (Join-Path $Root "LICENSE") $dist -ErrorAction SilentlyContinue
 
 # default config without any secret
 $config = @{

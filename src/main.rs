@@ -7,6 +7,7 @@ mod inject;
 mod llm;
 mod model;
 mod pipeline;
+mod tray;
 mod ui;
 
 use std::sync::{mpsc, Arc, RwLock};
@@ -110,7 +111,9 @@ unsafe extern "system" fn enum_window_cb(
     1
 }
 
-fn find_window_like(fragments: &[&str]) -> Option<windows_sys::Win32::Foundation::HWND> {
+pub(crate) fn find_window_like(
+    fragments: &[&str],
+) -> Option<windows_sys::Win32::Foundation::HWND> {
     use windows_sys::Win32::UI::WindowsAndMessaging::EnumWindows;
     let mut ctx = FindCtx {
         fragments: fragments.iter().map(|s| s.to_string()).collect(),
@@ -210,7 +213,19 @@ fn main() {
     }));
 
     if already_running() {
-        info_box("Polish Tools 已经在运行，请查看任务栏或系统托盘。");
+        // 已有实例：直接把它唤到前台（可能正藏在托盘）
+        if let Some(hwnd) = find_window_like(&["Polish Tools"]) {
+            unsafe {
+                use windows_sys::Win32::UI::WindowsAndMessaging::{
+                    SetForegroundWindow, ShowWindow, SW_RESTORE, SW_SHOW,
+                };
+                ShowWindow(hwnd, SW_SHOW);
+                ShowWindow(hwnd, SW_RESTORE);
+                SetForegroundWindow(hwnd);
+            }
+        } else {
+            info_box("Polish Tools 已经在运行，请在系统托盘里查看。");
+        }
         return;
     }
 

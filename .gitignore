@@ -19,3 +19,6 @@
 .idea/
 Thumbs.db
 desktop.ini
+# test sandboxes
+/.test-*
+

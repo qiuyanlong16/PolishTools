@@ -57,6 +57,7 @@ impl App {
     ) -> Self {
         install_fonts(&cc.egui_ctx);
         cc.egui_ctx.set_visuals(egui::Visuals::light());
+        crate::tray::setup(cc.egui_ctx.clone(), cfg.clone());
         let draft = cfg.read().unwrap_or_else(|e| e.into_inner()).clone();
         let mut app = Self {
             cfg,
@@ -162,6 +163,16 @@ fn install_fonts(ctx: &egui::Context) {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // 关闭按钮 = 隐藏到托盘，而不是退出
+        // 注意：这里只用 Win32 ShowWindow 隐藏，不用 egui 的 Visible(false)，
+        // 否则 winit 内部状态会认为是“已隐藏”，后续 ShowWindow 无法真正恢复。
+        if ctx.input(|i| i.viewport().close_requested()) {
+            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+            crate::tray::hide_window();
+            self.notice = Some(("已最小化到托盘，双击托盘图标可恢复".to_string(), true));
+            crate::log_line("窗口已隐藏到托盘");
+        }
+
         self.drain_events();
         if self.busy {
             ctx.request_repaint_after(Duration::from_millis(150));

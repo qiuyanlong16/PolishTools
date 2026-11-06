@@ -23,6 +23,7 @@ You get:         This is a test sentence, and I have an apple.
 - **Local learning database** — every original/polished pair and every issue type is stored in `data/polish.db`. The Insights tab shows your error distribution and a "frequent mistakes" list.
 - **Any OpenAI-compatible model** — DeepSeek by default, works with OpenAI, Moonshot, Qwen, or your own gateway.
 - **Green / portable** — a single 5 MB exe. Config and data live next to the executable. Delete the folder to uninstall. No installer, no WebView2, no registry writes unless you enable autostart.
+- **Lives in the system tray** — closing the window hides it instead of quitting, and the hotkey keeps working. Double-click the tray icon to bring it back; right-click for show / pause / quit.
 
 ## Quick start
 
@@ -32,7 +33,8 @@ You get:         This is a test sentence, and I have an apple.
 4. Get an API key from [platform.deepseek.com](https://platform.deepseek.com/api_keys), paste it into **Settings → API Key**, then click **Test connection**.
 5. Type English anywhere and press <kbd>Space</kbd> three times.
 
-> The app runs windowed. You can minimize it and keep it in the taskbar while you work.
+> The app runs windowed. Closing it hides the window to the system tray — the triple-space trigger stays active.
+> Double-click the tray icon to reopen it, or right-click it for **Show / Pause / Quit**.
 
 ## How it works
 
