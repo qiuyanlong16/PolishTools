@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build portable zip
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use official crates.io source in CI
+        shell: pwsh
+        run: Remove-Item .cargo/config.toml -ErrorAction SilentlyContinue
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry and build
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build release binary
+        run: cargo build --release --locked
+
+      - name: Determine version
+        id: ver
+        shell: pwsh
+        run: |
+          $ref = "${{ github.ref_name }}"
+          if ($ref -like "v*") {
+            $version = $ref
+          } else {
+            $line = Select-String -Path Cargo.toml -Pattern '^version\s*=\s*"(.+)"' | Select-Object -First 1
+            $version = "v" + $line.Matches[0].Groups[1].Value
+          }
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Version: $version"
+
+      - name: Package portable zip
+        id: pkg
+        shell: pwsh
+        run: |
+          $version = "${{ steps.ver.outputs.version }}"
+          $stage = "dist/PolishTools"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+
+          Copy-Item "target/release/polish-tools.exe" "$stage/PolishTools.exe"
+          Copy-Item "README.md", "README.zh-CN.md", "LICENSE" $stage -ErrorAction SilentlyContinue
+
+          $config = @{
+            api_base          = "https://api.deepseek.com"
+            api_key           = ""
+            model             = "deepseek-chat"
+            temperature       = 0.2
+            max_chars         = 6000
+            restore_clipboard = $true
+            paused            = $false
+            autostart         = $false
+            hotkey            = @{ repeat = 3; interval_ms = 400; swallow = $true }
+          } | ConvertTo-Json -Depth 4
+          [System.IO.File]::WriteAllText("$stage/config.json", $config, (New-Object System.Text.UTF8Encoding($false)))
+
+          $zip = "dist/PolishTools-$version-windows-x64.zip"
+          Compress-Archive -Path "$stage/*" -DestinationPath $zip -Force
+
+          "zip=$zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Packaged $zip ($((Get-Item $zip).Length) bytes)"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.version }}
+          name: Polish Tools ${{ steps.ver.outputs.version }}
+          files: ${{ steps.pkg.outputs.zip }}
+          generate_release_notes: true
+          body: |
+            ## Download
+
+            `PolishTools-${{ steps.ver.outputs.version }}-windows-x64.zip` — portable, no installer required.
+
+            ### Get started
+
+            1. Extract the zip anywhere (e.g. `D:\Tools\PolishTools`).
+            2. Run `PolishTools.exe`.
+            3. Paste your DeepSeek API key in **Settings**, click **Test connection**.
+            4. In any text box, press <kbd>Space</kbd> three times to polish.
+
+            Data and settings stay inside the extracted folder (`config.json`, `data/polish.db`).
+            Delete the folder to uninstall.
+
+            ### Requirements
+
+            - Windows 10 / 11 (x64)
+            - An OpenAI-compatible API key (DeepSeek by default)
+
+            See [README.md](README.md) for configuration and troubleshooting.

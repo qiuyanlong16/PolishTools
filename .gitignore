@@ -1,0 +1,21 @@
+# Build output
+/target
+/dist
+
+# Runtime data created next to the exe
+/data
+/config.json
+*.db
+*.db-wal
+*.db-shm
+
+# Local test sandboxes
+/.test-home
+/.release-test
+/mock_requests.log
+
+# Editor / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
