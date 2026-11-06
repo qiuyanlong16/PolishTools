@@ -50,10 +50,11 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ steps.ver.outputs.version }}"
-          $stage = "dist/PolishTools"
+          $root = (Get-Location).Path
+          $stage = Join-Path $root "dist/PolishTools"
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
 
-          Copy-Item "target/release/polish-tools.exe" "$stage/PolishTools.exe"
+          Copy-Item "target/release/polish-tools.exe" (Join-Path $stage "PolishTools.exe")
           Copy-Item "README.md", "README.zh-CN.md", "LICENSE" $stage -ErrorAction SilentlyContinue
 
           $config = @{
@@ -67,13 +68,14 @@ jobs:
             autostart         = $false
             hotkey            = @{ repeat = 3; interval_ms = 400; swallow = $true }
           } | ConvertTo-Json -Depth 4
-          [System.IO.File]::WriteAllText("$stage/config.json", $config, (New-Object System.Text.UTF8Encoding($false)))
+          [System.IO.File]::WriteAllText((Join-Path $stage "config.json"), $config, (New-Object System.Text.UTF8Encoding($false)))
 
-          $zip = "dist/PolishTools-$version-windows-x64.zip"
-          Compress-Archive -Path "$stage/*" -DestinationPath $zip -Force
+          $zip = Join-Path $root "dist/PolishTools-$version-windows-x64.zip"
+          Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zip -Force
 
           "zip=$zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           Write-Host "Packaged $zip ($((Get-Item $zip).Length) bytes)"
+          Get-ChildItem $stage | Select-Object Name, Length | Format-Table -AutoSize
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
